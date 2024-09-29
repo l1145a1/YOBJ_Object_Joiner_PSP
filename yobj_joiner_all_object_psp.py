@@ -268,8 +268,9 @@ def join_object(b,t):
         base_mesh_vertice_count.append(value)
         print(f"Object {i}, Offset {base_mesh_object_offset[i]}, Vertice Count {base_mesh_vertice_count[i]}")
         b.read(20)
-    base_selected_object=int(input("Masukkan Object: "))
-    join_this_object(b,t,base_selected_object)
+    for i in range(base_mesh_count):
+        join_this_object(b,t,i)
+        pass
 
 def join_this_object(b,t,object_pilihan):
     texture_block_offset_new=[]
