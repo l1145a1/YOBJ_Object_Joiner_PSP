@@ -10,7 +10,9 @@ base_mesh_texture_offset = []
 base_mesh_vertice_header_2_offset = []
 base_mesh_vertice_count = []
 mesh_block_offset=[]
+texture_block_offset_new=[]
 mesh_header=[]
+new_header=[]
 
 def out(p, cursor, diff):   #pofo encrpyt logic
     count = 0
@@ -272,8 +274,6 @@ def join_object(b,t):
     join_this_object(b,t,base_selected_object)
 
 def join_this_object(b,t,object_pilihan):
-    texture_block_offset_new=[]
-    new_header=[]
     #copy mesh_vertice_header_1_offset ke paling bawah
     b.seek(base_mesh_vertice_header_1_offset[object_pilihan]+8)
     print(f"Mesh Header 1 Offset: {b.tell()}")
@@ -364,32 +364,20 @@ def join_this_object(b,t,object_pilihan):
         t.seek(0, os.SEEK_END)
         lenght=0
         j=0
-        print(f"test: {mesh_texture_block_count[i]-1}")
-        if mesh_texture_block_count[i]>1:
-            for j in range(mesh_texture_block_count[i]-1):
-                lenght = block_offset[j+1]-block_offset[j]
-                b.seek(block_offset[j]+8)
-                block_mesh.append(b.read(lenght))
-                value = t.tell()
-                block_offset_new.append(value)
-                print(f"block offset new: {value}")
-                t.write(block_mesh[j])
-                print(f"Write at {value}, Texture {i}, block {j}, lenght {lenght}")
-                pass
-            value = t.tell()
-            block_offset_new.append(value)
-            b.seek(block_offset[j+1]+8)
-            block_mesh.append(b.read(lenght))
-            t.write(block_mesh[j+1])
-            print(f"Write at {value}, Texture {i}, block {j+1}, lenght {lenght}")
-        else:
-            value = t.tell()
-            block_offset_new.append(value)
+        for j in range(mesh_texture_block_count[i]-1):
+            lenght = block_offset[j+1]-block_offset[j]
             b.seek(block_offset[j]+8)
             block_mesh.append(b.read(lenght))
+            value = t.tell()
+            block_offset_new.append(value)
             t.write(block_mesh[j])
-            print(f"Write at {value}, Texture {i}, block {j+1}, lenght {lenght}")
-            pass
+            print(f"Write at {value}, Texture {i}, block {j}, lenght {lenght}")
+        value = t.tell()
+        block_offset_new.append(value)
+        b.seek(block_offset[j+1]+8)
+        block_mesh.append(b.read(lenght))
+        t.write(block_mesh[j+1])
+        print(f"Write at {value}, Texture {i}, block {j+1}, lenght {lenght}")
 
         #update Offset block
         for j in range(mesh_texture_block_count[i]):
@@ -457,6 +445,7 @@ def join_this_object(b,t,object_pilihan):
     t.read(4)
     print(f"Update Target POF0 Offset at {t.tell()}")
     t.write(struct.pack('<I',new_pof0_offset-8))
+
 
 def main():
     if len(sys.argv) != 3:
