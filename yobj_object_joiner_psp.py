@@ -277,7 +277,11 @@ def join_this_object(b,t,object_pilihan):
     #copy mesh_vertice_header_1_offset ke paling bawah
     b.seek(base_mesh_vertice_header_1_offset[object_pilihan]+8)
     print(f"Mesh Header 1 Offset: {b.tell()}")
-    value = b.read(48)
+    vertex_size=struct.unpack('<I', b.read(4))[0]
+    bones_size=struct.unpack('<I', b.read(4))[0]
+    vertex_header_1_lenght=bones_size*4
+    b.seek(-8,1)
+    value = b.read(16+vertex_header_1_lenght)
     t.seek(0, os.SEEK_END)
     new_vertex_header_1 = t.tell()
     print(f"Menulis data ke Offset {t.tell()}")
@@ -300,22 +304,17 @@ def join_this_object(b,t,object_pilihan):
     t.seek(-4,1)
     t.write(struct.pack('<I',update_header))
     print(f"Menulis ulang Vertex Header 2 Offset: {t.tell()-4}, Menjadi {update_header}")
-    t.seek(-44,1)
+    t.seek(new_vertex_header_1+8)
     t.write(struct.pack('<I',update_header))
     print(f"Menulis ulang Vertex Header 1 Offset: {t.tell()-4}, Menjadi {update_header}")
 
     #copy Vertex
     b.seek(vertex_offset+8)
     print(f"Vertex Offset: {b.tell()}")
-    vertex_lenght = 32+(44*base_mesh_vertice_count[object_pilihan])+(24*(base_mesh_vertice_count[object_pilihan]-1))
+    vertex_lenght =vertex_size*68
     value = b.read(vertex_lenght)
     t.seek(0, os.SEEK_END)
     print(f"Menulis data ke Offset {t.tell()} dengan panjang {vertex_lenght} byte")
-    t.write(value)
-    t.seek(0, os.SEEK_END)
-    sisa = t.tell() % 16
-    print(sisa)
-    t.write(b'\x00' * sisa)
 
     #copy Texture
     b.seek(base_mesh_texture_offset[object_pilihan]+8)
