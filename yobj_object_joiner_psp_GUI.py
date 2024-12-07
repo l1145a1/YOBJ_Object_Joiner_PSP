@@ -388,6 +388,7 @@ def join_this_object(b,t,object_pilihan):
             t.write(b'\x00' * (8 - sisa))
         elif sisa > 8:
             t.write(b'\x00' * (16 - sisa))
+
     #update offset texture block
     for i in range(base_mesh_texture_count[object_pilihan]):
         t.seek(mesh_texture_new[i])
@@ -447,22 +448,6 @@ def join_this_object(b,t,object_pilihan):
     t.read(4)
     print(f"Update Target POF0 Offset at {t.tell()}")
     t.write(struct.pack('<I',new_pof0_offset-8))
-    t.seek(0, os.SEEK_END)
-    cursor=t.tell()
-    new_mesh_header_offset = t.tell()
-    t.write(mesh_header[object_pilihan])
-    t.seek(cursor)
-    t.read(8)
-    print(f"Write New Object Header at {t.tell()}, Vertex Header 1")
-    t.write(struct.pack('<I',new_vertex_header_1-8))
-    print(f"Write New Object Header at {t.tell()}, Texture Header")
-    t.write(struct.pack('<I',mesh_texture_new[0]-8))
-    t.read(8)
-    print(f"Write New Object Header at {t.tell()}, Vertex Header 2")
-    t.write(struct.pack('<I',new_vertex_header_2-8))
-    t.seek(cursor)
-    print(f"Write New Object {object_pilihan} Header to new_header")
-    new_header.append(t.read(64))
 
 def reset_variables():
     global base_mesh_object_offset, base_mesh_texture_count, base_mesh_vertice_header_1_offset
