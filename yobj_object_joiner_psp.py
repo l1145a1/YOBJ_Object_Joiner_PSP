@@ -274,6 +274,8 @@ def join_object(b,t):
     join_this_object(b,t,base_selected_object)
 
 def join_this_object(b,t,object_pilihan):
+    texture_block_offset_new=[]
+    new_header=[]
     #copy mesh_vertice_header_1_offset ke paling bawah
     b.seek(base_mesh_vertice_header_1_offset[object_pilihan]+8)
     print(f"Mesh Header 1 Offset: {b.tell()}")
@@ -315,6 +317,13 @@ def join_this_object(b,t,object_pilihan):
     value = b.read(vertex_lenght)
     t.seek(0, os.SEEK_END)
     print(f"Menulis data ke Offset {t.tell()} dengan panjang {vertex_lenght} byte")
+    t.write(value)
+    t.seek(0, os.SEEK_END)
+    sisa = t.tell() % 16
+    if sisa < 8:
+        t.write(b'\x00' * (8 - sisa))
+    elif sisa > 8:
+        t.write(b'\x00' * (16 - sisa))
 
     #copy Texture
     b.seek(base_mesh_texture_offset[object_pilihan]+8)
@@ -336,18 +345,23 @@ def join_this_object(b,t,object_pilihan):
         value=struct.unpack('<I', t.read(4))[0]
         mesh_block_offset.append(value)
         print(f"Block Offset: {value}")
+        pass
 
     #copy block
+    t.seek(0, os.SEEK_END)
     for i in range(base_mesh_texture_count[object_pilihan]):
         b.seek(mesh_block_offset[i]+8)
         block_isi=[]
         block_offset=[]
-        block_offset_new=[]
         block_mesh=[]
+        block_size=[]
         mesh_block_offset_new=[]
         for j in range(mesh_texture_block_count[i]):
             block_isi.append(b.read(16))
-            b.seek(-4,1)
+            b.seek(-8,1)
+            value=struct.unpack('<I', b.read(4))[0]
+            block_size.append(value)
+            print(f"Read Offset {b.tell()-4}, Texture {i}, Block {j}, Block Size: {value}")
             value=struct.unpack('<I', b.read(4))[0]
             print(f"Read Offset {b.tell()-4}, Texture {i}, Block {j}, Block Offset: {value}")
             block_offset.append(value)
@@ -360,31 +374,21 @@ def join_this_object(b,t,object_pilihan):
             t.write(block_isi[j])
             print(f"Write at {value}, Texture {i}, Block {j}")
             pass
-        t.seek(0, os.SEEK_END)
-        lenght=0
-        j=0
-        for j in range(mesh_texture_block_count[i]-1):
-            lenght = block_offset[j+1]-block_offset[j]
-            b.seek(block_offset[j]+8)
-            block_mesh.append(b.read(lenght))
-            value = t.tell()
-            block_offset_new.append(value)
-            t.write(block_mesh[j])
-            print(f"Write at {value}, Texture {i}, block {j}, lenght {lenght}")
-        value = t.tell()
-        block_offset_new.append(value)
-        b.seek(block_offset[j+1]+8)
-        block_mesh.append(b.read(lenght))
-        t.write(block_mesh[j+1])
-        print(f"Write at {value}, Texture {i}, block {j+1}, lenght {lenght}")
-
-        #update Offset block
         for j in range(mesh_texture_block_count[i]):
-            t.seek(mesh_block_offset_new[j]+12)
-            print(f"Write at {t.tell()}, Texture {i}, Block {j}, New Block Offset")
-            t.write(struct.pack('<I',block_offset_new[j]-8))
-        pass
-
+            b.seek(block_offset[j]+8)
+            block_lenght=block_size[j]*2
+            value=b.read(block_lenght)
+            print(f"Read Offset {b.tell()-block_lenght}, Texture {i}, Block {j}, Block Size: {block_lenght}")
+            t.seek(0, os.SEEK_END)
+            block_offset_new=t.tell()
+            t.write(value)
+            pass
+        t.seek(0, os.SEEK_END)
+        sisa = t.tell() % 16
+        if sisa < 8:
+            t.write(b'\x00' * (8 - sisa))
+        elif sisa > 8:
+            t.write(b'\x00' * (16 - sisa))
     #update offset texture block
     for i in range(base_mesh_texture_count[object_pilihan]):
         t.seek(mesh_texture_new[i])
@@ -444,8 +448,22 @@ def join_this_object(b,t,object_pilihan):
     t.read(4)
     print(f"Update Target POF0 Offset at {t.tell()}")
     t.write(struct.pack('<I',new_pof0_offset-8))
-
-
+    t.seek(0, os.SEEK_END)
+    cursor=t.tell()
+    new_mesh_header_offset = t.tell()
+    t.write(mesh_header[object_pilihan])
+    t.seek(cursor)
+    t.read(8)
+    print(f"Write New Object Header at {t.tell()}, Vertex Header 1")
+    t.write(struct.pack('<I',new_vertex_header_1-8))
+    print(f"Write New Object Header at {t.tell()}, Texture Header")
+    t.write(struct.pack('<I',mesh_texture_new[0]-8))
+    t.read(8)
+    print(f"Write New Object Header at {t.tell()}, Vertex Header 2")
+    t.write(struct.pack('<I',new_vertex_header_2-8))
+    t.seek(cursor)
+    print(f"Write New Object {object_pilihan} Header to new_header")
+    new_header.append(t.read(64))
 def main():
     if len(sys.argv) != 3:
         print(f"Usage: {sys.argv[0]} infile outfile")
@@ -464,7 +482,6 @@ def main():
         return 1
 
     join_object(base_yobj, target_yobj)
-    generate_pof0(target_yobj)
 
     base_yobj.close()
 
