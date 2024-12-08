@@ -383,6 +383,11 @@ def join_this_object(b,t,object_pilihan):
             t.seek(0, os.SEEK_END)
             block_offset_new=t.tell()
             t.write(value)
+            print(f"Write Offset {t.tell()-block_lenght}, Texture {i}, Block {j}, Block Size: {block_lenght}")
+            t.seek(mesh_block_offset_new[j])
+            t.read(12)
+            print(f"Write New Offset Block {block_offset_new-8} at {t.tell()}, Texture {i}, Block {j}, Block Size: {block_lenght}")
+            t.write(struct.pack('<I',block_offset_new-8))
             pass
         t.seek(0, os.SEEK_END)
         sisa = t.tell() % 16
