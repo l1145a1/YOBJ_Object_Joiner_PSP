@@ -1,6 +1,7 @@
 import struct
 import sys
 import os
+import shutil
 
 FILE_HEADER = 8
 base_mesh_object_offset = []
@@ -449,6 +450,26 @@ def join_this_object(b,t,object_pilihan):
     t.read(4)
     print(f"Update Target POF0 Offset at {t.tell()}")
     t.write(struct.pack('<I',new_pof0_offset-8))
+
+def backup_file(target_file):
+    """Membuat backup file dengan ekstensi .bak"""
+    try:
+        # Membuka file target untuk dibaca
+        with open(target_file, "r+b") as target_yobj:
+            # Menentukan nama file backup
+            backup_file = target_file + ".bak"
+
+            # Membuat file backup dan menyalin kontennya
+            with open(backup_file, "wb") as backup:
+                target_yobj.seek(0)  # Pastikan pointer di awal file
+                shutil.copyfileobj(target_yobj, backup)
+
+            print(f"Backup file berhasil dibuat: {backup_file}")
+            return True
+    except IOError as e:
+        print(f"Error saat membuat backup file: {e}")
+        return False
+
 def main():
     if len(sys.argv) != 3:
         print(f"Usage: {sys.argv[0]} infile outfile")
@@ -465,7 +486,7 @@ def main():
     except IOError:
         print(f"Cannot open {sys.argv[2]}")
         return 1
-
+    backup_file(target_file)
     join_object(base_yobj, target_yobj)
     generate_pof0(target_yobj)
 

@@ -3,6 +3,7 @@ import sys
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
+import shutil
 
 FILE_HEADER = 8
 base_mesh_object_offset = []
@@ -463,6 +464,25 @@ def reset_variables():
     mesh_block_offset = []
     mesh_header = []
 
+def backup_file(target_file):
+    """Membuat backup file dengan ekstensi .bak"""
+    try:
+        # Membuka file target untuk dibaca
+        with open(target_file, "r+b") as target_yobj:
+            # Menentukan nama file backup
+            backup_file = target_file + ".bak"
+
+            # Membuat file backup dan menyalin kontennya
+            with open(backup_file, "wb") as backup:
+                target_yobj.seek(0)  # Pastikan pointer di awal file
+                shutil.copyfileobj(target_yobj, backup)
+
+            print(f"Backup file berhasil dibuat: {backup_file}")
+            return True
+    except IOError as e:
+        print(f"Error saat membuat backup file: {e}")
+        return False
+
 def main(base_file, target_file, selected_object):
     reset_variables()
 
@@ -477,7 +497,7 @@ def main(base_file, target_file, selected_object):
     except IOError:
         print(f"Cannot open {target_file}")
         return 1
-
+    backup_file(target_file)
     join_object(base_yobj, target_yobj, selected_object)
     generate_pof0(target_yobj)  # Panggil fungsi generate_pof0 sesuai kebutuhan
 
